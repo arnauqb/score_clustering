@@ -3,15 +3,17 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install
 import subprocess
 import os
+from os.path import abspath, dirname, join
 
-this_dir = os.abspath(os.dirname(__file__))
-with open(os.join(this_dir, "LICENSE")) as f:
+
+this_dir = abspath(dirname(__file__))
+with open(join(this_dir, "LICENSE")) as f:
     license = f.read()
     
-with open(os.join(this_dir, "README.md"), encoding="utf-8") as file:
+with open(join(this_dir, "README.md"), encoding="utf-8") as file:
     long_description = file.read()
 
-with open(os.join(this_dir, "requirements.txt")) as f:
+with open(join(this_dir, "requirements.txt")) as f:
     requirements = f.read().split("\n")
 
 
@@ -22,7 +24,6 @@ setup(
         url="https://github.com/arnauqb/score_clustering",
         long_description_content_type='text/markdown',
         long_description=long_description,
-        scripts=scripts,
         author="Arnau Quera-Bofarull",
         author_email='arnauq@protonmail.com',
         license="MIT",
