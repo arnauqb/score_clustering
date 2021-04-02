@@ -2,7 +2,7 @@ from typing import List, Union
 import numpy as np
 from sortedcontainers import SortedSet, SortedList
 from sortedcontainers.sortedlist import bisect_left
-from sklearn.neighbors import KDTree
+from scipy.spatial import Delaunay
 
 from .point import Point
 
@@ -76,13 +76,13 @@ def merge(cluster1: Cluster, cluster2: Cluster):
     points = cluster1.points.union(cluster2.points)
     return Cluster(points)
 
+
 def merge_and_split(clusters, cluster1: Cluster, cluster2: Cluster):
     clusters.remove(cluster1)
     clusters.remove(cluster2)
     cluster1, cluster2 = merge(cluster1, cluster2).split()
     clusters.add(cluster1)
     clusters.add(cluster2)
-
 
 
 def _get_initial_split(cluster: Cluster, k: int):
@@ -95,10 +95,17 @@ def _get_initial_split(cluster: Cluster, k: int):
     return clusters
 
 
-def get_closest_clusters(kdtree, clusters, cluster):
-    indices = kdtree.query(cluster.centroid.reshape(1,-1), k=len(clusters), return_distance=False)[0]
-    ret = [clusters[idx] for idx in indices[1:]] # exclude own centroid
-    return ret
+def get_closest_clusters(delaunay, clusters, i):
+    neighbors = list(
+        set(
+            indx
+            for simplex in delaunay.simplices
+            if i in simplex
+            for indx in simplex
+            if indx != i
+        )
+    )
+    return [clusters[neighbor] for neighbor in neighbors if neighbor != -1]
 
 
 def get_cluster_split(points: List[Point], k: int, niters: int = 10):
@@ -111,12 +118,14 @@ def get_cluster_split(points: List[Point], k: int, niters: int = 10):
         niters -= 1
         changed = False
         centroids = [cluster.centroid for cluster in clusters]
-        centroids_kdtree = KDTree(np.array(centroids))
+        centroids_delaunay = Delaunay(np.array(centroids))
         split1 = None
         split2 = None
-        for cluster in clusters:
+        for (i, cluster) in enumerate(clusters):
             if cluster.score < avg_score:
-                neighbor_clusters = get_closest_clusters(centroids_kdtree, clusters, cluster)
+                neighbor_clusters = get_closest_clusters(
+                    centroids_delaunay, clusters, i
+                )
                 for neighbor in neighbor_clusters:
                     if neighbor.score > avg_score:
                         changed = True

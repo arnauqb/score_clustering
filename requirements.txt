@@ -1,3 +1,2 @@
 numpy==1.20
-scikit-learn==0.24
 sortedcontainers==2.3

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from sortedcontainers import SortedSet
 
 
@@ -12,10 +12,11 @@ class Point:
             p.y == q.y and p.x < q.x
     """
 
-    def __init__(self, x: float, y: float, score: float = 0):
+    def __init__(self, x: float, y: float, score: float = 0, name: Optional[str] = None):
         self.x = x
         self.y = y
         self.score = score
+        self.name = name
 
     def __lt__(self, other):
         if self.y < other.y:
