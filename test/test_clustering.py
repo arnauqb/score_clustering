@@ -69,12 +69,10 @@ class TestClustering:
         for point in points:
             point.score = 10
         total_score = sum(point.score for point in points)
-        print(total_score)
         n_clusters = 10
         avg_score = total_score / 10
         clusters = get_cluster_split(points, n_clusters, niters=20)
         assert len(clusters) == 10
-        print([cluster.score for cluster in clusters])
         for cluster in clusters:
             assert cluster.score ==  avg_score
 
