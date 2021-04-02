@@ -1,6 +1,9 @@
 import pytest
 import numpy as np
-from random import random
+import random
+# fix random seed for tests
+random.seed(0)
+np.random.seed(0)
 from sortedcontainers import SortedSet
 
 from score_clustering import sort_points, Cluster, Point, get_cluster_split, merge
@@ -69,20 +72,20 @@ class TestClustering:
         print(total_score)
         n_clusters = 10
         avg_score = total_score / 10
-        clusters = get_cluster_split(points, n_clusters)
+        clusters = get_cluster_split(points, n_clusters, niters=20)
         assert len(clusters) == 10
         print([cluster.score for cluster in clusters])
         for cluster in clusters:
-            assert cluster.score == avg_score
+            assert cluster.score ==  avg_score
 
     def test__all_points_similar_score(self):
         points = list(map(lambda x: Point(*x), 100 * np.random.random((100, 3))))
         for point in points:
-            point.score = 10 + random()
+            point.score = 10 + random.random()
         total_score = sum(point.score for point in points)
         n_clusters = 10
         avg_score = total_score / 10
-        clusters = get_cluster_split(points, n_clusters, niters=20)
+        clusters = get_cluster_split(points, n_clusters, niters=10)
         assert len(clusters) == 10
         for cluster in clusters:
             assert np.isclose(cluster.score, avg_score, rtol=0.2)
