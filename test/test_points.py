@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from score_clustering import Point, get_intersection_time, sort_points
+from score_clustering import Point, score_vector, calculate_centroid_update
 
 
 class TestPoints:
@@ -12,28 +12,32 @@ class TestPoints:
         assert p.score == 5
         assert p.name == "test"
 
-    def test__sort_points(self):
-        A = Point(2.46, 4.83, 0)
-        B = Point(2, 2, 0)
-        C = Point(5, 2.49, 0)
-        D = Point(5, 4, 0)
-        E = Point(4.18, 7.15, 0)
-        points = np.array([A, B, C, D, E])
+    def test__score_vector(self):
+        avg_score = 2
+        p = Point(1, 2, 10)
+        q = Point(2, 3, 5)
+        assert np.allclose(
+            score_vector(p, q, avg_score), -np.log(7 / 2) * np.array([1, 1]), rtol=0.05
+        )
+        p = Point(1, 2, 5)
+        q = Point(2, 3, 10)
+        assert np.allclose(
+            score_vector(p, q, avg_score), np.log(7 / 2) * np.array([1, 1]), rtol=0.05
+        )
+        p = Point(6, 2, 5)
+        q = Point(1, 3, 10)
+        assert np.allclose(
+            score_vector(p, q, avg_score), np.log(7 / 2) * np.array([-5, 1]), rtol=0.05
+        )
 
-        # Delaunay vertices
-        F = np.array([0.3, 2.57, 0])
-        G = np.array([9, 6, 0])
+    def test__calculate_centroid_update(self):
+        points = [
+            Point(0, 0, 1),
+            Point(10, 0, 2),
+            Point(0, 10, 3),
+            Point(10, 10, 4),
+        ]
+        update_vector = calculate_centroid_update(Point(5,5,3), points, 2.5)
+        assert np.isclose(update_vector[0], 2.939, rtol=1e-2)
+        assert np.isclose(update_vector[1], 6.304, rtol=1e-2)
 
-        # calculated with Geogebra
-        assert np.isclose(get_intersection_time(F, G, A), 2.84, rtol=0.01)
-        assert np.isclose(get_intersection_time(F, G, B), 1.37, rtol=0.01)
-        assert np.isclose(get_intersection_time(F, G, C), 4.34, rtol=0.01)
-        assert np.isclose(get_intersection_time(F, G, D), 4.9, rtol=0.01)
-        assert np.isclose(get_intersection_time(F, G, E), 5.29, rtol=0.01)
-
-        sorted_points = sort_points(points, F, G)
-        assert sorted_points[0] == B
-        assert sorted_points[1] == A
-        assert sorted_points[2] == C
-        assert sorted_points[3] == D
-        assert sorted_points[4] == E
