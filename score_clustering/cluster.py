@@ -16,7 +16,7 @@ class Cluster:
         self.points = np.array(points)
         self.subclusters = []
         self.score = self._get_score()
-        self.centroid = self._get_centroid()
+        #self.centroid = self._get_centroid()
 
     def __getitem__(self, index):
         return self.points[index]
@@ -39,11 +39,10 @@ class Cluster:
     def _get_score(self):
         return sum(point.score for point in self.points)
 
-    def _get_centroid(self):
-        return np.array(
-            [
-                np.mean([point.x for point in self.points]),
-                np.mean([point.y for point in self.points]),
-            ]
-        )
+    #def _get_centroid(self):
+    #    return Point(
+    #            x=np.mean([point.x for point in self.points]),
+    #            y=np.mean([point.y for point in self.points]),
+    #            score=self.score
+    #    )
 
