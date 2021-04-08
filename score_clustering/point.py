@@ -25,19 +25,28 @@ class Centroid:
         self.y = y
         self.score = score
 
-    def score_vector(self, q: "Centroid", avg_score: float, epsilon: float = 1):
-        score_diff = (q.score - self.score) / avg_score
-        # distance = np.sign(score_diff) * (abs(score_diff) / (abs(score_diff) + epsilon))
-        distance = score_diff  # max(0, score_diff)  # epsilon * np.tanh(1 - score_diff)
+    def get_weight(self, q: "Centroid", avg_score):
+        return (q.score - self.score)# * abs(self.score - avg_score) / avg_score 
+
+    def score_vector(self, q: "Centroid", avg_score: float):
+        weight = self.get_weight(q, avg_score)
         direction = np.array([q.x - self.x, q.y - self.y])
-        return distance * direction
+        return weight * direction
 
     def update_position(self, points, avg_score, norm, epsilon=1):
         ret = np.zeros(2)
+        #weights = [self.get_weight(q, avg_score) for q in points]
+        #max_arg = np.argmax(weights)
+        #q = points[max_arg]
+        #direction = np.array([q.x - self.x, q.y - self.y])
+        #ret = epsilon * direction * norm / np.linalg.norm(direction)
         for q in points:
-            ret += self.score_vector(q, avg_score, epsilon)
-        ret_norm = norm / np.linalg.norm(ret)
-        ret = epsilon * ret * ret_norm
+            ret += self.score_vector(q, avg_score)
+        direction_norm = np.linalg.norm(ret)
+        if direction_norm == 0:
+            return
+        ret_norm = norm / direction_norm
+        ret = epsilon / 2 * ret * ret_norm
         self.x += ret[0]
         self.y += ret[1]
 
