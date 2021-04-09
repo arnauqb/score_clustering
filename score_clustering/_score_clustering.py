@@ -24,7 +24,7 @@ class ScoreClustering:
         )
         return np.array([norm_x, norm_y])
 
-    def fit(self, points: List[Point], niters=50):
+    def fit(self, points: List[Point], niter=50):
         norm = self._compute_points_norm(points)
         avg_score = sum(point.score for point in points) / self.n_clusters
         centroids = self._get_initial_centroids(points, self.n_clusters)
@@ -32,7 +32,7 @@ class ScoreClustering:
         best_score = score
         best_centroids = deepcopy(centroids)
         print(f"Initial score is {best_score}")
-        for iter in range(niters):
+        for iter in range(niter):
             if score > 50:
                 epsilon = self.epsilon0
             elif score > 10:
@@ -46,7 +46,6 @@ class ScoreClustering:
             self.update_centroids_positions(centroids, avg_score, norm, epsilon)
             self.update_centroids_scores(centroids, points)
             score = self.calculate_score_unbalance(centroids)
-            print(score)
             if score < best_score:
                 print(f"New best score: {score}")
                 best_score = score
