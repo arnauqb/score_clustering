@@ -13,13 +13,13 @@ class Cluster:
 
     _id = count()
 
-    def __init__(self, points: List[Point]):
+    def __init__(self, points: List[Point], centroid):
         self.id = next(self._id)
         self.points = np.array(points)
         for point in points:
             point.cluster = self
         self.score = self._get_score()
-        self.centroid = self._get_centroid()
+        self.centroid = centroid #self._get_centroid()
 
     def __getitem__(self, index):
         return self.points[index]
