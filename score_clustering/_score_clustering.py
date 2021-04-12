@@ -32,36 +32,47 @@ class ScoreClustering:
         best_score = score
         best_centroids = deepcopy(centroids)
         print(f"Initial score is {best_score}")
-        for iter in range(niter):
-            if score > 50:
-                epsilon = self.epsilon0
-            elif score > 10:
-                epsilon = self.epsilon0 / 10
-            elif score > 5:
-                epsilon = self.epsilon0 / 100
-            elif score > 2:
-                epsilon = self.epsilon0 / 1000
-            else:
-                epsilon = self.epsilon0 / 10000
-            self.update_centroids_positions(centroids, avg_score, norm, epsilon)
-            self.update_centroids_scores(centroids, points)
-            score = self.calculate_score_unbalance(centroids)
-            if score < best_score:
-                print(f"New best score: {score}")
-                best_score = score
-                best_centroids = deepcopy(centroids)
+        no_change = 0
+        #for iter in range(niter):
+        points_k = [[point.x, point.y] for point in points[
+        while best_score > 1.05 and no_change < 20000:
+            #epsilon = self.epsilon0
+            #if score < 10:
+            #    epsilon = self.epsilon0 / 10
+            ##elif score < 5:
+            ##    epsilon = self.epsilon0 / 50
+            ###elif score > 25:
+            ###    epsilon = self.epsilon0 / 10
+            ###elif score > 10:
+            ###    epsilon = self.epsilon0 / 100
+            ##elif score > 10:
+            ##    epsilon = self.epsilon0 / 2
+            ##else:
+            ##    epsilon = self.epsilon0 / 10000
+            #self.update_centroids_positions(centroids, avg_score, norm, epsilon)
+            #self.update_centroids_scores(centroids, points)
+            #score = self.calculate_score_unbalance(centroids)
+            #print(score)
+            #if score < best_score:
+            #    print(f"New best score: {score}")
+            #    best_score = score
+            #    best_centroids = deepcopy(centroids)
+            #    no_change = 0
+            #else:
+            #    no_change += 1
         return self.assign_points_to_closest_centroid(points, best_centroids)
 
     def update_centroids_positions(self, current_centroids, avg_score: float, norm, epsilon):
         centroids_k = [centroid.position for centroid in current_centroids]
         centroids_delaunay = Delaunay(centroids_k)
         for i, centroid in enumerate(current_centroids):
-            neighbor_centroids = self._get_neighbor_clusters(
-                centroids_delaunay, current_centroids, i
-            )
-            centroid.update_position(
-                neighbor_centroids, avg_score, norm, epsilon
-            )
+            if centroid.score > avg_score:
+                neighbor_centroids = self._get_neighbor_clusters(
+                    centroids_delaunay, current_centroids, i
+                )
+                centroid.update_position(
+                    neighbor_centroids, avg_score, norm, epsilon
+                )
 
     def assign_points_to_closest_centroid(self, points, centroids):
         centroids_k = [centroid.position for centroid in centroids]
