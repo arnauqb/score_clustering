@@ -1,122 +1,96 @@
 import numpy as np
 from typing import List
 from copy import deepcopy
+from random import sample
 from scipy.spatial import Delaunay
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KDTree
-from sortedcontainers import SortedList
+from sortedcontainers import SortedList, SortedSet
 
-from .point import Point, Centroid 
+from .point import Point
 from .cluster import Cluster
 
 
 class ScoreClustering:
-    def __init__(self, n_clusters, epsilon0=1):
+    def __init__(self, n_clusters):
         self.n_clusters = n_clusters
-        self.epsilon0 = epsilon0
-
-    def _compute_points_norm(self, points):
-        norm_x = abs(
-            max(point.x for point in points) - min(point.x for point in points)
-        )
-        norm_y = abs(
-            max(point.y for point in points) - min(point.y for point in points)
-        )
-        return np.array([norm_x, norm_y])
 
     def fit(self, points: List[Point], niter=50):
-        norm = self._compute_points_norm(points)
+        clusters = self._get_initial_split(points)
         avg_score = sum(point.score for point in points) / self.n_clusters
-        centroids = self._get_initial_centroids(points, self.n_clusters)
-        score = self.calculate_score_unbalance(centroids)
-        best_score = score
-        best_centroids = deepcopy(centroids)
-        print(f"Initial score is {best_score}")
-        no_change = 0
-        #for iter in range(niter):
-        points_k = [[point.x, point.y] for point in points[
-        while best_score > 1.05 and no_change < 20000:
-            #epsilon = self.epsilon0
-            #if score < 10:
-            #    epsilon = self.epsilon0 / 10
-            ##elif score < 5:
-            ##    epsilon = self.epsilon0 / 50
-            ###elif score > 25:
-            ###    epsilon = self.epsilon0 / 10
-            ###elif score > 10:
-            ###    epsilon = self.epsilon0 / 100
-            ##elif score > 10:
-            ##    epsilon = self.epsilon0 / 2
-            ##else:
-            ##    epsilon = self.epsilon0 / 10000
-            #self.update_centroids_positions(centroids, avg_score, norm, epsilon)
-            #self.update_centroids_scores(centroids, points)
-            #score = self.calculate_score_unbalance(centroids)
-            #print(score)
-            #if score < best_score:
-            #    print(f"New best score: {score}")
-            #    best_score = score
-            #    best_centroids = deepcopy(centroids)
-            #    no_change = 0
-            #else:
-            #    no_change += 1
-        return self.assign_points_to_closest_centroid(points, best_centroids)
+        #best_score = self.calculate_score_unbalance(clusters)
+        #best_clusters = deepcopy(clusters)
+        while niter:
+            niter -= 1
+            to_change = set()
+            to_join_pairs = []
+            #for (i, cluster) in enumerate(clusters):
+            for i in sample(range(self.n_clusters), self.n_clusters):
+                cluster = clusters[i]
+                if cluster.id in to_change:
+                    continue
+                if cluster.score < avg_score:
+                    neighbor_clusters = self._get_neighbor_clusters(cluster)
+                    for neighbor in reversed(neighbor_clusters):
+                        if neighbor.id in to_change:
+                            continue
+                        if neighbor.score > avg_score:
+                            to_join_pairs.append((cluster, neighbor))
+                            to_change.add(cluster.id)
+                            to_change.add(neighbor.id)
+                            break
+            if to_change:
+                for pair in to_join_pairs:
+                    self._merge_and_split(clusters, pair[0], pair[1])
+                #centroids = [cluster.centroid for cluster in clusters]
+                #clusters = self.assign_points_to_closest_centroid(points, centroids)
+                score = self.calculate_score_unbalance(clusters)
+                print(score)
+                #if score < best_score:
+                #    best_score = score
+                #    best_clusters = deepcopy(clusters)
+                #    print(f"Best score is {best_score}")
+        return clusters# best_clusters
 
-    def update_centroids_positions(self, current_centroids, avg_score: float, norm, epsilon):
-        centroids_k = [centroid.position for centroid in current_centroids]
-        centroids_delaunay = Delaunay(centroids_k)
-        for i, centroid in enumerate(current_centroids):
-            if centroid.score > avg_score:
-                neighbor_centroids = self._get_neighbor_clusters(
-                    centroids_delaunay, current_centroids, i
-                )
-                centroid.update_position(
-                    neighbor_centroids, avg_score, norm, epsilon
-                )
-
-    def assign_points_to_closest_centroid(self, points, centroids):
-        centroids_k = [centroid.position for centroid in centroids]
-        centroids_kdtree = KDTree(centroids_k)
-        points_k = [[point.x, point.y] for point in points]
-        distances, idcs = centroids_kdtree.query(points_k, k=1)
-        clusters_points = [[] for _ in range(len(centroids))]
-        for point, index in zip(points, idcs):
-            clusters_points[index[0]].append(point)
-        clusters = [Cluster(points) for points in clusters_points]
-        return clusters
-
-    def update_centroids_scores(self, centroids, points):
-        for centroid in centroids:
-            centroid.score = 0
-        centroids_k = [centroid.position for centroid in centroids]
-        centroids_kdtree = KDTree(centroids_k)
-        points_k = [[point.x, point.y] for point in points]
-        distances, idcs = centroids_kdtree.query(points_k, k=1)
-        for point, index in zip(points, idcs):
-            centroid = centroids[index[0]]
-            centroid.score += point.score
-
-    def calculate_score_unbalance(self, centroids):
-        max_score = max([centroid.score for centroid in centroids if centroid.score > 0])
-        min_score = min([centroid.score for centroid in centroids if centroid.score > 0])
+    def calculate_score_unbalance(self, clusters):
+        max_score = max([cluster.score for cluster in clusters])
+        min_score = min([cluster.score for cluster in clusters])
         return max_score / min_score
 
-    def _get_initial_centroids(self, points: List[Point], k: int):
-        points_k = np.array([[point.x, point.y] for point in points])
-        kmeans = KMeans(n_clusters=k).fit(points_k)
-        centroid_positions = kmeans.cluster_centers_
-        centroids = [Centroid(c[0], c[1]) for c in centroid_positions]
-        self.update_centroids_scores(centroids, points)
-        return centroids
+    def _merge_and_split(self, clusters, cluster1: Cluster, cluster2: Cluster):
+        clusters.remove(cluster1)
+        clusters.remove(cluster2)
+        cluster1, cluster2 = cluster1.merge(cluster2).split()
+        clusters.add(cluster1)
+        clusters.add(cluster2)
 
-    def _get_neighbor_clusters(self, delaunay, centroids, i):
-        neighbors = list(
-            set(
-                indx
-                for simplex in delaunay.simplices
-                if i in simplex
-                for indx in simplex
-                if indx != i
-            )
-        )
-        return [centroids[neighbor] for neighbor in neighbors if neighbor != -1]
+    def _get_initial_split(self, points: List[Point]):
+        cluster = Cluster(points)
+        clusters = SortedList([cluster])
+        for _ in range(self.n_clusters):
+            biggest_cluster = clusters.pop(-1)
+            c1, c2 = biggest_cluster.split()
+            clusters.update([c1, c2])
+        return clusters
+
+    def _get_neighbor_clusters(self, cluster):
+        neighbor_clusters = [neighbor.cluster for point in cluster.points for neighbor in point.neighbors]
+        neighbor_clusters = SortedSet(neighbor_clusters)
+        neighbor_clusters.remove(cluster)
+        return neighbor_clusters
+                    
+
+        ##neighbors = list(
+        ##    set(
+        ##        indx
+        ##        for simplex in delaunay.simplices
+        ##        if i in simplex
+        ##        for indx in simplex
+        ##        if indx != i
+        ##    )
+        ##)
+        #neighbor_clusters = [
+        #    clusters[neighbor] for neighbor in neighbors if neighbor != -1
+        #]
+        #neighbor_scores = [cluster.score for cluster in neighbor_clusters]
+        #return [neighbor_clusters[i] for i in np.argsort(neighbor_scores)[::-1]]
