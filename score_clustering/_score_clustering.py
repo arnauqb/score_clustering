@@ -15,7 +15,7 @@ class ScoreClustering:
     def __init__(self, n_clusters):
         self.n_clusters = n_clusters
 
-    def fit(self, points: List[Point], maxiter=50000, target_score=1.01):
+    def fit(self, points: List[Point], maxiter=50000, target_score=1.05):
         clusters = self._get_initial_clusters(points)
         avg_score = sum(point.score for point in points) / self.n_clusters
         score = self.calculate_score_unbalance(clusters)
@@ -70,9 +70,23 @@ class ScoreClustering:
 
     def _get_initial_clusters(self, points: List[Point]):
         points_k = np.array([[point.x, point.y] for point in points])
-        kmeans = KMeans(n_clusters=self.n_clusters).fit(points_k)
-        centroid_positions = kmeans.cluster_centers_
-        centroids_kdtree = KDTree(centroid_positions)
+        best_centroids = None
+        best_score = np.inf
+        for _ in range(10):
+            kmeans = KMeans(n_clusters=self.n_clusters).fit(points_k)
+            centroid_positions = kmeans.cluster_centers_
+            centroids_kdtree = KDTree(centroid_positions)
+            distances, idcs = centroids_kdtree.query(points_k, k=1)
+            clusters_points = [[] for _ in range(self.n_clusters)]
+            for point, index in zip(points, idcs):
+                clusters_points[index[0]].append(point)
+            clusters = [Cluster(points) for points in clusters_points]
+            score = self.calculate_score_unbalance(clusters)
+            if score < best_score:
+                best_score = score
+                best_centroids = deepcopy(centroid_positions)
+        print(f"Best initial score is {best_score}")
+        centroids_kdtree = KDTree(best_centroids)
         distances, idcs = centroids_kdtree.query(points_k, k=1)
         clusters_points = [[] for _ in range(self.n_clusters)]
         for point, index in zip(points, idcs):
