@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List
 from copy import deepcopy
-from random import sample
+from random import sample, randint
 from scipy.spatial import Delaunay
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KDTree
@@ -25,16 +25,17 @@ class ScoreClustering:
                 point_cluster = point.cluster
                 if point_cluster.score < avg_score:
                     for neighbor in sample(point.neighbors, len(point.neighbors)):
+                        if neighbor.cluster == point_cluster:
+                            continue
                         if neighbor.cluster.is_articulation_point(
                             neighbor
                         ):  # neighbor in neighbor.cluster.articulation_points:
                             continue
                         if neighbor.cluster.score > avg_score:
-                            if (neighbor.cluster != point_cluster) and (
-                                point.cluster.score + neighbor.score <= 1.1 * avg_score
-                            ):
+                            if point.cluster.score + neighbor.score <= 1.1 * avg_score:
                                 self._transfer_point(neighbor, point)
                                 break
+            self._reassign_isolated_points(points)
             score = self.calculate_score_unbalance(clusters)
             print(score)
         return clusters  # best_clusters
@@ -92,7 +93,25 @@ class ScoreClustering:
         for point, index in zip(points, idcs):
             clusters_points[index[0]].append(point)
         clusters = [Cluster(points) for points in clusters_points]
+        self._reassign_isolated_points(points)
         return clusters
+
+    def _reassign_isolated_points(self, points):
+        isolated_points = []
+        for point in points:
+            isolated = True
+            if point.neighbors:
+                for neighbor in point.neighbors:
+                    if neighbor.cluster == point.cluster:
+                        isolated = False
+                        break
+                if isolated:
+                    point.cluster.remove(point)
+                    isolated_points.append(point)
+
+        for point in isolated_points:
+            neighbor = point.neighbors[randint(0, len(point.neighbors) - 1)]
+            neighbor.cluster.add(point)
 
     def calculate_score_unbalance(self, clusters):
         max_score = max([cluster.score for cluster in clusters])
