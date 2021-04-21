@@ -92,7 +92,9 @@ class ScoreClustering:
         clusters_points = [[] for _ in range(self.n_clusters)]
         for point, index in zip(points, idcs):
             clusters_points[index[0]].append(point)
-        clusters = [Cluster(points) for points in clusters_points]
+        clusters = [Cluster(ps) for ps in clusters_points]
+        for point in points:
+            assert point.cluster is not None
         self._reassign_isolated_points(points)
         return clusters
 
@@ -106,12 +108,12 @@ class ScoreClustering:
                         isolated = False
                         break
                 if isolated:
-                    point.cluster.remove(point)
                     isolated_points.append(point)
-
         for point in isolated_points:
-            neighbor = point.neighbors[randint(0, len(point.neighbors) - 1)]
-            neighbor.cluster.add(point)
+            for neighbor in sample(point.neighbors, len(point.neighbors)):
+                if neighbor.cluster is not None:
+                    point.cluster.remove(point)
+                    neighbor.cluster.add(point)
 
     def calculate_score_unbalance(self, clusters):
         max_score = max([cluster.score for cluster in clusters])
