@@ -37,7 +37,6 @@ class ScoreClustering:
                                 break
             self._reassign_isolated_points(points)
             score = self.calculate_score_unbalance(clusters)
-            print(score)
         return clusters  # best_clusters
 
     def _transfer_point(self, outgoing, incoming):
