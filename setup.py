@@ -19,7 +19,7 @@ with open(join(this_dir, "requirements.txt")) as f:
 
 setup(
         name="score_clustering",
-        version="0.1.1",
+        version="0.1.2",
         description="A clustering algorithm to divide points into clusters of equal score.",
         url="https://github.com/arnauqb/score_clustering",
         long_description_content_type='text/markdown',
