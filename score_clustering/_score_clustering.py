@@ -25,7 +25,7 @@ class ScoreClustering:
                 point_cluster = point.cluster
                 if point_cluster.score < avg_score:
                     for neighbor in sample(point.neighbors, len(point.neighbors)):
-                        if neighbor.cluster == point_cluster:
+                        if (neighbor.cluster == point_cluster) or (len(neighbor.cluster.points)==0):
                             continue
                         if neighbor.cluster.is_articulation_point(
                             neighbor
@@ -37,6 +37,7 @@ class ScoreClustering:
                                 break
             self._reassign_isolated_points(points)
             score = self.calculate_score_unbalance(clusters)
+        print(f"Best score is {score}")
         return clusters  # best_clusters
 
     def _transfer_point(self, outgoing, incoming):
@@ -69,6 +70,7 @@ class ScoreClustering:
         return clusters
 
     def _get_initial_clusters(self, points: List[Point]):
+        print(f"Computing initial K split...")
         points_k = np.array([[point.x, point.y] for point in points])
         best_centroids = None
         best_score = np.inf
@@ -109,6 +111,8 @@ class ScoreClustering:
                 if isolated:
                     isolated_points.append(point)
         for point in isolated_points:
+            if len(point.cluster.points) <= 1:
+                continue
             for neighbor in sample(point.neighbors, len(point.neighbors)):
                 if neighbor.cluster is not None:
                     point.cluster.remove(point)
